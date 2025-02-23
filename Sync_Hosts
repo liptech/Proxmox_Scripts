@@ -1,0 +1,30 @@
+#!/bin/bash
+
+SYNC_FILE="/etc/pve/priv/hosts.sync"
+HOSTS_FILE="/etc/hosts"
+LOG_FILE="/var/log/hosts_sync.log"
+
+# Cria o arquivo de sincronização se ele não existir
+if [[ ! -f $SYNC_FILE ]]; then
+    cp "$HOSTS_FILE" "$SYNC_FILE"
+    echo "$(date) - Criado arquivo de sincronização inicial." >> "$LOG_FILE"
+fi
+
+sync_hosts() {
+    if ! diff -q "$SYNC_FILE" "$HOSTS_FILE" > /dev/null 2>&1; then
+        echo "$(date) - Alteração detectada, sincronizando..." >> "$LOG_FILE"
+        
+        if [[ "$SYNC_FILE" -nt "$HOSTS_FILE" ]]; then
+            cp "$SYNC_FILE" "$HOSTS_FILE"
+            echo "$(date) - /etc/hosts atualizado a partir de $SYNC_FILE" >> "$LOG_FILE"
+        else
+            cp "$HOSTS_FILE" "$SYNC_FILE"
+            echo "$(date) - $SYNC_FILE atualizado a partir de /etc/hosts" >> "$LOG_FILE"
+        fi
+    fi
+}
+
+while true; do
+    sync_hosts
+    sleep 5
+done
